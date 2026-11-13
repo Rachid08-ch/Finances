@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1F3A5F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Finances">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Finances</title>
+<style>
+:root{--navy:#1F3A5F;--bg:#f4f6fa;--card:#fff;--ink:#1d2433;--muted:#6b7280;--line:#e5e9f0;
+  --ok:#166534;--okbg:#dcfce7;--warn:#92400e;--warnbg:#fef3c7;--bad:#b42318;--badbg:#fde2e1;--neu:#eef1f5}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0f1420;--card:#1a2232;--ink:#e8edf5;--muted:#9aa4b5;--line:#2a3447;--okbg:#14321f;--ok:#7ee2a0;--warnbg:#3a2b10;--warn:#fcd34d;--badbg:#3a1714;--bad:#fca5a5;--neu:#232c3e}}
+:root[data-theme="dark"]{--bg:#0f1420;--card:#1a2232;--ink:#e8edf5;--muted:#9aa4b5;--line:#2a3447;--okbg:#14321f;--ok:#7ee2a0;--warnbg:#3a2b10;--warn:#fcd34d;--badbg:#3a1714;--bad:#fca5a5;--neu:#232c3e}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:16px}
+header{background:var(--navy);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px;position:sticky;top:0;z-index:5}
+header h1{font-size:18px;margin:0}
+#status{font-size:12px;opacity:.9;text-align:right}
+#signin{background:#fff;color:var(--navy);border:0;border-radius:8px;padding:8px 12px;font-weight:700;font-size:13px;cursor:pointer}
+main{padding:14px 14px 100px;max-width:600px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.card h3{margin:0 0 8px;font-size:14px;color:var(--muted);font-weight:600}
+label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
+label:first-child{margin-top:0}
+input,select{width:100%;font-size:16px;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+#f-amount{font-size:32px;font-weight:700;text-align:center;padding:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:15px;cursor:pointer}
+.chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
+.seg button{padding:10px 4px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:14px;cursor:pointer}
+.seg button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+button.primary{width:100%;margin-top:12px;padding:15px;font-size:17px;font-weight:700;border:0;border-radius:12px;background:var(--navy);color:#fff;cursor:pointer}
+button.small{padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:13px;cursor:pointer}
+button.danger{color:var(--bad)}
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav button{flex:1;padding:10px 0;border:0;background:none;color:var(--muted);font-size:12px;cursor:pointer}
+nav button.on{color:var(--navy);font-weight:700}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:86px;background:#111827;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center;z-index:9}
+.toast.show{opacity:1}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);font-size:15px}
+.row:last-child{border-bottom:0}
+.muted{color:var(--muted);font-size:13px}
+.bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:6px}
+.bar>div{height:100%;background:var(--navy);border-radius:99px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
+.tile .big{font-size:20px;font-weight:700;margin-top:4px}
+.tag{font-size:12px;padding:3px 9px;border-radius:99px;white-space:nowrap}
+.ok{background:var(--okbg);color:var(--ok)} .warn{background:var(--warnbg);color:var(--warn)} .bad{background:var(--badbg);color:var(--bad)} .neu{background:var(--neu);color:var(--muted)}
+.hidden{display:none !important}
+.amt-neg{color:var(--bad)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Finances</h1>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span id="status">starting…</span>
+    <button id="signin" class="hidden">Sign in</button>
+  </div>
+</header>
+
+<main>
+  <!-- HOME -->
+  <section id="tab-home">
+    <div class="card">
+      <label style="margin-top:0">Month</label>
+      <input id="month" type="month">
+    </div>
+    <div class="grid2" id="kpis"></div>
+    <div class="card"><h3>Accounts (all time)</h3><div id="accounts"></div></div>
+    <div class="card"><h3>Budget buckets this month</h3><div id="buckets"></div></div>
+    <div class="grid2" id="totals"></div>
+  </section>
+
+  <!-- ADD -->
+  <section id="tab-add" class="hidden">
+    <div class="seg" id="kinds">
+      <button data-kind="expense" class="on">Expense</button>
+      <button data-kind="income">Income</button>
+      <button data-kind="borrow">I borrowed</button>
+      <button data-kind="repay">I paid back</button>
+      <button data-kind="goal">To a goal</button>
+      <button data-kind="transfer">Transfer</button>
+    </div>
+    <div class="card">
+      <label style="margin-top:0">Amount</label>
+      <input id="f-amount" type="number" inputmode="decimal" step="any" placeholder="0">
+
+      <div id="g-expense">
+        <label>What is it?</label><div id="f-types" class="chips"></div>
+      </div>
+      <div id="g-income" class="hidden">
+        <label>Budget bucket</label><div id="f-income-buckets" class="chips"></div>
+      </div>
+      <div id="g-person" class="hidden">
+        <label>Person</label>
+        <select id="f-person"></select>
+        <input id="f-newperson" type="text" placeholder="Name of the new person" class="hidden" style="margin-top:8px">
+      </div>
+      <div id="g-goal" class="hidden">
+        <label>Goal</label><select id="f-goal"></select>
+      </div>
+      <div id="g-transfer" class="hidden">
+        <label>From</label><div id="f-from" class="chips"></div>
+        <label>To</label><div id="f-to" class="chips"></div>
+      </div>
+
+      <div id="g-account">
+        <label id="f-account-label">Paid from</label><div id="f-accounts" class="chips"></div>
+      </div>
+
+      <label>Date</label>
+      <input id="f-date" type="date">
+      <label>Note (optional)</label>
+      <input id="f-note" type="text">
+    </div>
+    <button class="primary" id="f-save">Save</button>
+  </section>
+
+  <!-- BILLS -->
+  <section id="tab-bills" class="hidden">
+    <div class="card"><h3>Bills this month</h3><div id="billList"></div></div>
+    <div class="card">
+      <h3>New bill</h3>
+      <input id="b-name" type="text" placeholder="e.g. Electricity">
+      <div class="grid2" style="margin-top:10px">
+        <input id="b-amount" type="number" inputmode="decimal" step="any" placeholder="Amount">
+        <input id="b-day" type="number" inputmode="numeric" min="1" max="31" placeholder="Due day (1-31)">
+      </div>
+      <label>Paid from</label><div id="b-accounts" class="chips"></div>
+      <label>Budget bucket</label><div id="b-buckets" class="chips"></div>
+    </div>
+    <button class="primary" id="b-save">Add bill</button>
+  </section>
+
+  <!-- GOALS -->
+  <section id="tab-goals" class="hidden">
+    <div class="card"><h3>Savings goals</h3><div id="goalList"></div></div>
+    <div class="card">
+      <h3>New goal</h3>
+      <input id="g-name" type="text" placeholder="e.g. Car fund">
+      <div class="grid2" style="margin-top:10px">
+        <input id="g-target" type="number" inputmode="decimal" placeholder="Target">
+        <input id="g-deadline" type="date">
+      </div>
+    </div>
+    <button class="primary" id="g-save">Create goal</button>
+    <p class="muted" style="margin-top:10px">To put money into a goal, use the Add tab and choose "To a goal".</p>
+  </section>
+
+  <!-- DEBTS -->
+  <section id="tab-debts" class="hidden">
+    <div class="card"><h3>What you still owe</h3><div id="debtList"></div></div>
+    <p class="muted">Use the Add tab to record "I borrowed" and "I paid back".</p>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="tab-history" class="hidden">
+    <div class="card"><h3>Everything recorded (newest first)</h3><div id="history"></div></div>
+    <div class="card">
+      <h3>Settings</h3>
+      <label style="margin-top:0">Add an account</label>
+      <div style="display:flex;gap:8px"><input id="s-account" type="text" placeholder="e.g. Cash"><button class="small" id="s-account-save">Add</button></div>
+      <label>Add an expense type</label>
+      <input id="s-type" type="text" placeholder="e.g. Taxi">
+      <select id="s-type-bucket" style="margin-top:8px"></select>
+      <button class="small" id="s-type-save" style="margin-top:8px">Add type</button>
+    </div>
+    <div class="card">
+      <h3>Backup</h3>
+      <p class="muted" style="margin-top:0">Download a copy of all your data as a file, and keep it somewhere safe.</p>
+      <button class="small" id="backup">Download backup</button>
+    </div>
+  </section>
+</main>
+
+<nav>
+  <button data-tab="home" class="on">Home</button>
+  <button data-tab="add">Add</button>
+  <button data-tab="bills">Bills</button>
+  <button data-tab="goals">Goals</button>
+  <button data-tab="debts">Debts</button>
+  <button data-tab="history">History</button>
+</nav>
+<div id="toast" class="toast"></div>
+
+<script src="https://accounts.google.com/gsi/client" async defer onload="initGoogle()"></script>
+<script src="logic.js"></script>
+<script>
+/* ============ SETTINGS ============ */
+// Paste your OAuth Client ID here (see SETUP.txt step 4).
+const CLIENT_ID = '937262255509-vaoj212j2548415uj34d6j0rvmcl3ls4.apps.googleusercontent.com';
+const SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const FILE_NAME = 'finance-data.json';
+
+/* ============ SHORTCUTS ============ */
+const L = window.FinLogic;
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => (Number(n) || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
+const pct = p => (p === null || p === undefined || isNaN(p)) ? '–' : Math.round(p * 100) + '%';
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const clean = e => String((e && e.message) || e).replace(/^.*?INVALID: /, '');
+
+/* ============ STATE ============ */
+let DATA = loadLocal();
+let MONTH = L.monthOf(L.todayStr());
+let KIND = 'expense';
+let SEL = { type: null, bucket: null, account: 'Pocket', from: 'Pocket', to: 'CCP', goal: null };
+let BILL_SEL = { account: 'Pocket', bucket: null };
+
+function loadLocal() {
+  try {
+    const raw = localStorage.getItem('fin_data');
+    if (raw) return normalize(JSON.parse(raw));
+  } catch (e) {}
+  return L.defaultData();
+}
+function normalize(d) {
+  const base = L.defaultData();
+  return Object.assign(base, d);
+}
+function saveLocal() {
+  try { localStorage.setItem('fin_data', JSON.stringify(DATA)); } catch (e) {}
+}
+
+/* ============ TOAST / STATUS ============ */
+let toastT;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2000);
+}
+function setStatus(s) { $('#status').textContent = s; }
+
+/* ============ GOOGLE SIGN-IN AND DRIVE ============ */
+let tokenClient = null, token = null, tokenExp = 0, resolveTok = null, rejectTok = null;
+let fileId = localStorage.getItem('fin_fileid') || null;
+let signedIn = false, syncing = false, syncTimer = null;
+
+function initGoogle() {
+  if (!window.google || !google.accounts) { setStatus('offline'); return; }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPE,
+    callback: resp => {
+      if (resp.error) { rejectTok && rejectTok(new Error(resp.error)); }
+      else {
+        token = resp.access_token;
+        tokenExp = Date.now() + (Number(resp.expires_in) - 60) * 1000;
+        resolveTok && resolveTok(token);
+      }
+      resolveTok = rejectTok = null;
+    },
+    error_callback: err => { rejectTok && rejectTok(new Error(err.type || 'sign-in')); resolveTok = rejectTok = null; }
+  });
+  if (localStorage.getItem('fin_signed') === '1') connect(false);
+  else showSignIn(true);
+}
+
+function showSignIn(show) { $('#signin').classList.toggle('hidden', !show); }
+
+function getToken(interactive) {
+  if (token && Date.now() < tokenExp) return Promise.resolve(token);
+  return new Promise((res, rej) => {
+    resolveTok = res; rejectTok = rej;
+    tokenClient.requestAccessToken({ prompt: interactive ? 'select_account' : '' });
+  });
+}
+
+async function api(url, opts, interactive) {
+  const t = await getToken(!!interactive);
+  const res = await fetch(url, Object.assign({}, opts || {}, {
+    headers: Object.assign({}, (opts && opts.headers) || {}, { Authorization: 'Bearer ' + t })
+  }));
+  if (!res.ok) { const e = new Error('Drive ' + res.status); e.status = res.status; throw e; }
+  return res;
+}
+
+async function findFile() {
+  const q = encodeURIComponent("name='" + FILE_NAME + "' and trashed=false");
+  const r = await (await api('https://www.googleapis.com/drive/v3/files?q=' + q + '&fields=files(id)')).json();
+  return r.files && r.files[0] ? r.files[0].id : null;
+}
+async function readFile(id) {
+  return (await api('https://www.googleapis.com/drive/v3/files/' + id + '?alt=media')).json();
+}
+async function createFile(data) {
+  const b = 'fin' + Date.now();
+  const body = '--' + b + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' +
+    JSON.stringify({ name: FILE_NAME, mimeType: 'application/json' }) +
+    '\r\n--' + b + '\r\nContent-Type: application/json\r\n\r\n' + JSON.stringify(data) + '\r\n--' + b + '--';
+  const res = await api('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+    { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + b }, body: body });
+  return (await res.json()).id;
+}
+async function updateFile(id, data) {
+  await api('https://www.googleapis.com/upload/drive/v3/files/' + id + '?uploadType=media',
+    { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+}
+
+async function connect(interactive) {
+  setStatus('connecting…');
+  try {
+    await getToken(interactive);
+    if (!fileId) fileId = await findFile();
+    const dirty = localStorage.getItem('fin_dirty') === '1';
+    if (fileId && !dirty) {
+      DATA = normalize(await readFile(fileId));
+      saveLocal();
+    } else if (fileId) {
+      await updateFile(fileId, DATA);
+    } else {
+      fileId = await createFile(DATA);
+    }
+    localStorage.setItem('fin_fileid', fileId);
+    localStorage.setItem('fin_signed', '1');
+    localStorage.removeItem('fin_dirty');
+    signedIn = true; showSignIn(false);
+    setStatus('synced ✓'); render();
+  } catch (e) {
+    showSignIn(true);
+    setStatus(navigator.onLine ? 'sign in to sync' : 'offline');
+    if (interactive) toast('Sign-in did not finish: ' + clean(e));
+  }
+}
+
+/* ============ SAVING ============ */
+function commit() {
+  saveLocal();
+  localStorage.setItem('fin_dirty', '1');
+  render();
+  scheduleSync();
+}
+function scheduleSync() { clearTimeout(syncTimer); syncTimer = setTimeout(syncNow, 1500); }
+
+async function syncNow() {
+  if (!signedIn) { setStatus('saved on phone'); return; }
+  if (!navigator.onLine) { setStatus('offline, saved on phone'); return; }
+  if (syncing) { scheduleSync(); return; }
+  syncing = true; setStatus('syncing…');
+  try {
+    if (!fileId) fileId = await findFile() || await createFile(DATA);
+    try { await updateFile(fileId, DATA); }
+    catch (e) { if (e.status === 404) { fileId = await createFile(DATA); await updateFile(fileId, DATA); } else throw e; }
+    localStorage.setItem('fin_fileid', fileId);
+    localStorage.removeItem('fin_dirty');
+    setStatus('synced ✓');
+  } catch (e) {
+    setStatus('sync failed, retrying');
+    setTimeout(syncNow, 15000);
+  } finally { syncing = false; }
+}
+
+window.addEventListener('online', () => { if (localStorage.getItem('fin_dirty') === '1') scheduleSync(); });
+$('#signin').onclick = () => connect(true);
+
+/* ============ TABS ============ */
+function show(tab) {
+  ['home', 'add', 'bills', 'goals', 'debts', 'history'].forEach(t => $('#tab-' + t).classList.toggle('hidden', t !== tab));
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  window.scrollTo(0, 0);
+  render();
+}
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => show(b.dataset.tab));
+
+/* ============ CHIPS ============ */
+function chips(el, items, selected, onPick) {
+  el.innerHTML = '';
+  (items || []).forEach(it => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip' + (it === selected ? ' on' : '');
+    b.textContent = it;
+    b.onclick = () => { onPick(it); chips(el, items, it, onPick); };
+    el.appendChild(b);
+  });
+}
+
+/* ============ HOME ============ */
+function renderHome() {
+  const m = L.monthSummary(DATA, MONTH);
+  const t = L.totals(DATA);
+  $('#kpis').innerHTML = [
+    ['Income', fmt(m.income), ''],
+    ['Spent', fmt(m.spending), ''],
+    ['Kept', fmt(m.kept), m.keptPct === null ? '' : pct(m.keptPct) + ' of income'],
+    ['Net position', fmt(t.netPosition), 'accounts minus what you owe']
+  ].map(c => `<div class="tile"><div class="muted">${c[0]}</div><div class="big">${c[1]}</div><div class="muted">${c[2]}</div></div>`).join('');
+
+  $('#accounts').innerHTML = t.accounts.map(a =>
+    `<div class="row"><span>${esc(a.name)}</span><b class="${a.balance < 0 ? 'amt-neg' : ''}">${fmt(a.balance)}</b></div>`).join('') || '<div class="muted">No accounts yet.</div>';
+
+  $('#buckets').innerHTML = m.buckets.map(b => {
+    const w = b.planned > 0 ? Math.min(100, b.spent / b.planned * 100) : (b.spent > 0 ? 100 : 0);
+    const tag = { Over: ['bad', 'over'], Close: ['warn', 'close'], OK: ['ok', 'ok'], None: ['neu', '–'] }[b.status];
+    return `<div class="row" style="display:block">
+      <div style="display:flex;justify-content:space-between"><b>${esc(b.name)}</b><span class="tag ${tag[0]}">${tag[1]}</span></div>
+      <div class="muted">${fmt(b.spent)} spent of ${fmt(b.planned)} planned · ${pct(b.pct)} of income</div>
+      <div class="bar"><div style="width:${w}%"></div></div></div>`;
+  }).join('') + `<div class="row"><b>Total out</b><b>${fmt(m.out)}</b></div>`;
+
+  $('#totals').innerHTML = [
+    ['Saved in goals', fmt(t.saved)],
+    ['You still owe', fmt(t.owed)]
+  ].map(c => `<div class="tile"><div class="muted">${c[0]}</div><div class="big">${c[1]}</div></div>`).join('');
+}
+
+/* ============ ADD ============ */
+function setKind(k) {
+  KIND = k;
+  document.querySelectorAll('#kinds button').forEach(b => b.classList.toggle('on', b.dataset.kind === k));
+  const show = id => $(id).classList.remove('hidden');
+  const hide = id => $(id).classList.add('hidden');
+  ['#g-expense', '#g-income', '#g-person', '#g-goal', '#g-transfer', '#g-account'].forEach(hide);
+  if (k === 'expense') { show('#g-expense'); show('#g-account'); $('#f-account-label').textContent = 'Paid from'; }
+  if (k === 'income') { show('#g-income'); show('#g-account'); $('#f-account-label').textContent = 'Received into'; }
+  if (k === 'borrow') { show('#g-person'); show('#g-account'); $('#f-account-label').textContent = 'Money goes into'; }
+  if (k === 'repay') { show('#g-person'); show('#g-account'); $('#f-account-label').textContent = 'Paid from'; }
+  if (k === 'goal') { show('#g-goal'); show('#g-account'); $('#f-account-label').textContent = 'Taken from'; }
+  if (k === 'transfer') { show('#g-transfer'); }
+  renderAddChoices();
+}
+
+function renderAddChoices() {
+  chips($('#f-types'), DATA.expenseTypes.map(e => e.name), SEL.type, t => SEL.type = t);
+  chips($('#f-income-buckets'), DATA.buckets.map(b => b.name), SEL.bucket, b => SEL.bucket = b);
+  chips($('#f-accounts'), DATA.accounts, SEL.account, a => SEL.account = a);
+  chips($('#f-from'), DATA.accounts, SEL.from, a => SEL.from = a);
+  chips($('#f-to'), DATA.accounts, SEL.to, a => SEL.to = a);
+  const people = DATA.people;
+  const p = $('#f-person'); const keep = p.value;
+  p.innerHTML = '';
+  people.forEach(x => p.add(new Option(x, x)));
+  p.add(new Option('+ New person', '__new'));
+  if (keep && [...p.options].some(o => o.value === keep)) p.value = keep;
+  $('#f-newperson').classList.toggle('hidden', p.value !== '__new');
+  const g = $('#f-goal'); const gk = g.value;
+  g.innerHTML = '';
+  L.goalList(DATA, L.todayStr()).forEach(x => g.add(new Option(x.name, x.name)));
+  if (gk && [...g.options].some(o => o.value === gk)) g.value = gk;
+}
+
+$('#kinds').onclick = e => { if (e.target.dataset.kind) setKind(e.target.dataset.kind); };
+$('#f-person').onchange = () => $('#f-newperson').classList.toggle('hidden', $('#f-person').value !== '__new');
+
+$('#f-save').onclick = () => {
+  const amt = Number($('#f-amount').value);
+  if (!(amt > 0)) return toast('Enter an amount');
+  const date = $('#f-date').value || L.todayStr();
+  const note = $('#f-note').value.trim();
+  let tx = null;
+
+  if (KIND === 'expense') {
+    if (!SEL.type) return toast('Pick what it is');
+    const et = DATA.expenseTypes.find(e => e.name === SEL.type);
+    tx = { id: uid(), kind: 'expense', date, amount: amt, account: SEL.account, bucket: et.bucket,
+           desc: SEL.type + (note ? ' - ' + note : ''), billId: null };
+  } else if (KIND === 'income') {
+    if (!SEL.bucket) return toast('Pick a budget bucket');
+    tx = { id: uid(), kind: 'income', date, amount: amt, account: SEL.account, bucket: SEL.bucket, desc: note || 'Income' };
+  } else if (KIND === 'borrow' || KIND === 'repay') {
+    let person = $('#f-person').value;
+    if (person === '__new') person = $('#f-newperson').value.trim();
+    if (!person) return toast('Pick or add a person');
+    if (DATA.people.indexOf(person) < 0) DATA.people.push(person);
+    tx = { id: uid(), kind: KIND, date, amount: amt, account: SEL.account, person: person, desc: note };
+  } else if (KIND === 'goal') {
+    const g = $('#f-goal').value;
+    if (!g) return toast('Create a goal first (Goals tab)');
+    tx = { id: uid(), kind: 'goal', date, amount: amt, account: SEL.account, goal: g, desc: 'To goal: ' + g };
+  } else if (KIND === 'transfer') {
+    if (SEL.from === SEL.to) return toast('Pick two different accounts');
+    tx = { id: uid(), kind: 'transfer', date, amount: amt, from: SEL.from, to: SEL.to, desc: note || 'Transfer' };
+  }
+
+  DATA.txs.push(tx);
+  $('#f-amount').value = ''; $('#f-note').value = '';
+  commit();
+  toast('Saved ✓');
+};
+
+/* ============ BILLS ============ */
+function renderBills() {
+  const today = L.todayStr();
+  const el = $('#billList');
+  if (!DATA.bills.length) { el.innerHTML = '<div class="muted">No bills yet. Add one below.</div>'; return; }
+  el.innerHTML = DATA.bills.map(b => {
+    const s = L.billStatus(DATA, b, today);
+    const tag = { Paid: 'ok', Overdue: 'bad', 'Due soon': 'warn', Upcoming: 'neu' }[s.status];
+    const left = s.paid ? '' : (s.daysLeft < 0 ? ' · ' + (-s.daysLeft) + ' days late' : ' · ' + s.daysLeft + ' days left');
+    const btn = s.paid ? '' : `<button class="small" data-pay="${b.id}">Mark paid</button>`;
+    return `<div class="row">
+      <div style="flex:1"><div><b>${esc(b.name)}</b> <span class="muted">${esc(b.account)}</span></div>
+        <div class="muted">${fmt(b.amount)} · due ${s.dueDate}${left}</div></div>
+      <div style="text-align:right"><span class="tag ${tag}">${s.status}</span>
+        <div style="margin-top:6px">${btn} <button class="small danger" data-delbill="${b.id}">Remove</button></div></div></div>`;
+  }).join('');
+}
+
+$('#billList').onclick = e => {
+  const pay = e.target.dataset.pay, del = e.target.dataset.delbill;
+  if (pay) {
+    const b = DATA.bills.find(x => x.id === pay);
+    if (!b) return;
+    DATA.txs.push({ id: uid(), kind: 'expense', date: L.todayStr(), amount: b.amount, account: b.account,
+                    bucket: b.bucket, desc: 'Bill: ' + b.name, billId: b.id });
+    commit(); toast('Marked paid ✓');
+  }
+  if (del && confirm('Remove this bill? Past payments are kept.')) {
+    DATA.bills = DATA.bills.filter(x => x.id !== del); commit();
+  }
+};
+
+function renderBillForm() {
+  chips($('#b-accounts'), DATA.accounts, BILL_SEL.account, a => BILL_SEL.account = a);
+  chips($('#b-buckets'), DATA.buckets.map(b => b.name), BILL_SEL.bucket, b => BILL_SEL.bucket = b);
+}
+$('#b-save').onclick = () => {
+  const name = $('#b-name').value.trim(), amount = Number($('#b-amount').value), day = Number($('#b-day').value);
+  if (!name) return toast('Give the bill a name');
+  if (!(amount > 0)) return toast('Enter the amount');
+  if (!(day >= 1 && day <= 31)) return toast('Due day must be 1 to 31');
+  DATA.bills.push({ id: uid(), name, amount, day, account: BILL_SEL.account, bucket: BILL_SEL.bucket || DATA.buckets[0].name });
+  $('#b-name').value = ''; $('#b-amount').value = ''; $('#b-day').value = '';
+  commit(); toast('Bill added ✓');
+};
+
+/* ============ GOALS ============ */
+function renderGoals() {
+  const list = L.goalList(DATA, L.todayStr());
+  $('#goalList').innerHTML = list.length ? list.map(g => `<div class="row" style="display:block">
+      <div style="display:flex;justify-content:space-between;align-items:center"><b>${esc(g.name)}</b>
+        <span><span class="muted">${pct(g.pct)}</span> <button class="small danger" data-delgoal="${g.id}">Remove</button></span></div>
+      <div class="muted">${fmt(g.saved)} of ${fmt(g.target)}${g.deadline ? ' · by ' + esc(g.deadline) : ''}${g.perMonth > 0 ? ' · ' + fmt(g.perMonth) + ' a month' : ''}</div>
+      <div class="bar"><div style="width:${g.pct * 100}%"></div></div></div>`).join('')
+    : '<div class="muted">No goals yet. Create one below.</div>';
+}
+$('#goalList').onclick = e => {
+  const id = e.target.dataset.delgoal;
+  if (id && confirm('Remove this goal? Money already saved stays in the history.')) {
+    DATA.goals = DATA.goals.filter(x => x.id !== id); commit();
+  }
+};
+$('#g-save').onclick = () => {
+  const name = $('#g-name').value.trim(), target = Number($('#g-target').value);
+  if (!name) return toast('Give the goal a name');
+  if (!(target > 0)) return toast('Enter the target');
+  if (DATA.goals.some(g => g.name === name)) return toast('That goal already exists');
+  DATA.goals.push({ id: uid(), name, target, deadline: $('#g-deadline').value || '' });
+  $('#g-name').value = ''; $('#g-target').value = ''; $('#g-deadline').value = '';
+  commit(); toast('Goal created ✓');
+};
+
+/* ============ DEBTS ============ */
+function renderDebts() {
+  const list = L.debts(DATA);
+  const open = list.filter(d => d.owed > 0);
+  const done = list.filter(d => d.owed <= 0);
+  $('#debtList').innerHTML = (open.length ? open.map(d => `<div class="row" style="display:block">
+      <div style="display:flex;justify-content:space-between"><b>${esc(d.person)}</b><b>${fmt(d.owed)}</b></div>
+      <div class="muted">borrowed ${fmt(d.borrowed)} · paid back ${fmt(d.paid)} · ${pct(d.pct)} still to pay</div>
+      <div class="bar"><div style="width:${Math.min(100, (d.pct || 0) * 100)}%"></div></div></div>`).join('')
+    : '<div class="muted">You owe nobody right now.</div>')
+    + (done.length ? `<div class="muted" style="margin-top:10px">Paid off: ${done.map(d => esc(d.person)).join(', ')}</div>` : '');
+}
+
+/* ============ HISTORY ============ */
+function renderHistory() {
+  const labels = { income: 'Income', expense: 'Expense', borrow: 'Borrowed', repay: 'Paid back', goal: 'To goal', transfer: 'Transfer' };
+  const txs = DATA.txs.slice().sort((a, b) => (b.date > a.date ? 1 : b.date < a.date ? -1 : 0)).slice(0, 300);
+  $('#history').innerHTML = txs.length ? txs.map(t => {
+    const where = t.kind === 'transfer' ? esc(t.from) + ' → ' + esc(t.to) : esc(t.account || '') + (t.person ? ' · ' + esc(t.person) : '') + (t.goal ? ' · ' + esc(t.goal) : '');
+    return `<div class="row"><div style="flex:1"><div><b>${labels[t.kind]}</b> <span class="muted">${esc(t.date)}</span></div>
+      <div class="muted">${esc(t.desc || '')} · ${where}</div></div>
+      <div style="text-align:right"><b>${fmt(t.amount)}</b><div><button class="small danger" data-del="${t.id}">Delete</button></div></div></div>`;
+  }).join('') : '<div class="muted">Nothing recorded yet.</div>';
+}
+$('#history').onclick = e => {
+  const id = e.target.dataset.del;
+  if (id && confirm('Delete this entry?')) { DATA.txs = DATA.txs.filter(t => t.id !== id); commit(); }
+};
+
+function renderSettings() {
+  const s = $('#s-type-bucket');
+  if (s.options.length !== DATA.buckets.length) {
+    s.innerHTML = '';
+    DATA.buckets.forEach(b => s.add(new Option(b.name, b.name)));
+  }
+}
+$('#s-account-save').onclick = () => {
+  const name = $('#s-account').value.trim();
+  if (!name) return toast('Type an account name');
+  if (DATA.accounts.indexOf(name) >= 0) return toast('That account already exists');
+  DATA.accounts.push(name); $('#s-account').value = ''; commit(); toast('Account added ✓');
+};
+$('#s-type-save').onclick = () => {
+  const name = $('#s-type').value.trim();
+  if (!name) return toast('Type the expense name');
+  DATA.expenseTypes.push({ name, bucket: $('#s-type-bucket').value }); $('#s-type').value = '';
+  commit(); toast('Expense type added ✓');
+};
+
+$('#backup').onclick = () => {
+  const blob = new Blob([JSON.stringify(DATA, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'finances-backup-' + L.todayStr() + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+};
+
+/* ============ RENDER ============ */
+function render() {
+  const visible = id => !$(id).classList.contains('hidden');
+  if (visible('#tab-home')) renderHome();
+  if (visible('#tab-add')) renderAddChoices();
+  if (visible('#tab-bills')) { renderBills(); renderBillForm(); }
+  if (visible('#tab-goals')) renderGoals();
+  if (visible('#tab-debts')) renderDebts();
+  if (visible('#tab-history')) { renderHistory(); renderSettings(); }
+}
+
+/* ============ START ============ */
+(function start() {
+  const now = L.todayStr();
+  $('#month').value = MONTH;
+  $('#f-date').value = now;
+  $('#month').onchange = () => { MONTH = $('#month').value; renderHome(); };
+  setKind('expense');
+  BILL_SEL.bucket = DATA.buckets[0].name;
+  SEL.type = null;
+  setStatus(localStorage.getItem('fin_signed') === '1' ? 'loading…' : 'saved on phone');
+  render();
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>
